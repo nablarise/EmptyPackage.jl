@@ -8,27 +8,21 @@ This app is intended to be used as a template for creating new Julia application
 
 Tests should be defined in modules.
 These modules are loaded in your [current environment stack](https://docs.julialang.org/en/v1/manual/code-loading/#Environment-stacks) (i.e. in the `LOAD_PATH` variable) at the beginning of the `runtests.jl` script.
-This operation allows us to track changes and run the tests easily.
+This operation is needed to track changes and run the tests easily.
 
 ## The Revise-Test Loop
 
-The revise-test loop is a powerful workflow for Julia development that allows you to:
-1. Make changes to your code
-2. Automatically detect those changes
-3. Run tests immediately to verify your changes work correctly
-4. Continue development without restarting Julia
+The revise-test loop is a handy workflow for Julia development :
+1. You make changes to your code (current pkg and tests)
+2. [Revise.jl](https://timholy.github.io/Revise.jl/stable/) automatically detect those changes
+3. It runs tests immediately to verify your changes work correctly
+4. You continue development without restarting Julia
 
 This workflow significantly speeds up development by eliminating the need to restart Julia sessions between code changes.
 
 ### Setting Up the Revise-Test Loop
 
 Run the `./runtests.sh` script to start the revise-test loop.
-
-This script:
-- Calls the `test/runtests.jl` with the `"auto"` argument
-- Uses the [Revise.jl](https://timholy.github.io/Revise.jl/stable/) package to track changes to your source and test files
-- Automatically reruns tests when changes are detected
-- Provides immediate feedback on whether your changes broke existing functionality
 
 ### Configuring What to Track and Test
 
@@ -51,6 +45,8 @@ You need to edit the `test/runtests.jl` file to configure the revise-test loop:
    ```julia
    TEST_MODULES_TO_TRACK_AND_RUN = [EmptyPackageUnitTests]
    ```
+
+In each test module (e.g. EmptyPackageUnitTests), define a `run()` function that calls all your tests.
 
 With this setup, any changes to your source files in the tracked modules will trigger an automatic rerun of the specified test modules, giving you immediate feedback on your changes.
 
