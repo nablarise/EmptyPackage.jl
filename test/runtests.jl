@@ -46,7 +46,7 @@ TEST_MODULES_TO_TRACK_AND_RUN = [
 # The first argument is "from_sh" when the script is run from the shell.
 # Take a look at `runtests.sh`.
 if length(ARGS) >= 1 && ARGS[1] == "auto"
-    while run_tests_on_change(
+    while run_tests_on_change!(
         TEST_MODULES_TO_TRACK_AND_RUN,
         MODULES_TO_TRACK
     ) end

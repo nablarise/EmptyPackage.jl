@@ -1,68 +1,104 @@
 # Inspired from https://gist.github.com/torfjelde/62c1281d5fc486d3a404e5de6cf285d4
 # and Coluna.jl (https://github.com/atoptima/Coluna.jl/blob/master/test/revise.jl).
 
-function _check_other_errors(e)
+const REVISE_EVAL_ERROR_MESSAGE = """
+    Revise does not support this operation.
+    Need to restart julia session."""
+
+"""
+    _check_other_errors(e::Exception)::Bool
+
+Display error to stderr and return whether execution should stop.
+Returns `false` for most errors (continue execution).
+"""
+function _check_other_errors(e::Exception)::Bool
     showerror(stderr, e, catch_backtrace())
     return false
 end
 
-# Uninformative stacktrace.
+"""
+    _check_other_errors(e::Base.Meta.ParseError)::Bool
+
+Handle parse errors with simplified output (no stacktrace).
+"""
 function _check_other_errors(e::Base.Meta.ParseError)
     showerror(stderr, e)
     return false
 end
 
-# Uninformative stacktrace.
+"""
+    _check_other_errors(e::TaskFailedException)::Bool
+
+Handle task failures with simplified output (no stacktrace).
+"""
 function _check_other_errors(e::TaskFailedException)
     showerror(stderr, e)
     return false
 end
 
-# Test pkg prints the error.
-_check_other_errors(e::TestSetException) = false
+"""
+    _check_other_errors(e::TestSetException)::Bool
 
-function _check_other_errors(composite::CompositeException)
+Handle test failures - test package already prints the error.
+"""
+_check_other_errors(e::TestSetException)::Bool = false
+
+"""
+    _check_other_errors(composite::CompositeException)::Bool
+
+Handle composite exceptions by checking each individual exception.
+"""
+function _check_other_errors(composite::CompositeException)::Bool
     return any(e -> _check_other_errors(e), composite)
 end
 
 """
-Runs `test_funcs` functions when :
-- any of the files in `files_to_track` changes
-- any of the modules in `MODULES_TO_TRACK` changes
+    _execute_test_modules(test_modules::Vector)
 
-- returns 
- `false` if you need to restart
- `true` to stop
+Clear terminal and run all test modules.
 """
-function run_tests_on_change(TEST_MODULES_TO_TRACK_AND_RUN, MODULES_TO_TRACK)
-    # Revise might encounter an error on the files it's watching, in which case
-    # we need to re-trigger `Revise.entr`. BUT to avoid this happening repeatedly,
-    # we set `postpone=true` in the `Revise.entr` call above. This postpones the first
-    # trigger of the provided `f` until an actual change (which should hopefully be fixing
-    # the error that caused Revise to fail).
+function _execute_test_modules(test_modules::Vector)
+    run(`clear`)
+    for mod in test_modules
+        mod.run()
+    end
+end
+
+"""
+    _should_restart_session(exception::Exception)::Bool
+
+Determine whether the Julia session should be restarted based on exception type.
+Returns `true` for InterruptException or throws for ReviseEvalException.
+"""
+function _should_restart_session(exception::Exception)::Bool
+    if isa(exception, InterruptException)
+        return true
+    elseif isa(exception, Revise.ReviseEvalException)
+        error(REVISE_EVAL_ERROR_MESSAGE)
+    else
+        return _check_other_errors(exception)
+    end
+end
+
+"""
+Runs test modules when tracked files or modules change.
+Returns `true` if session restart is needed, `false` to continue.
+"""
+function run_tests_on_change!(test_modules_to_track_and_run::Vector, modules_to_track::Vector)::Bool
     revise_errored = false
     while true
         try
-            entr([], [TEST_MODULES_TO_TRACK_AND_RUN..., MODULES_TO_TRACK...]; postpone=revise_errored, all=true) do
-                run(`clear`) # clear terminal
-                for mod in TEST_MODULES_TO_TRACK_AND_RUN
-                    # All the tests from a test module must be executed by the run method.
-                    mod.run()
-                end
+            entr(
+                [],
+                [test_modules_to_track_and_run..., modules_to_track...];
+                postpone = revise_errored,
+                all = true,
+            ) do
+                return _execute_test_modules(test_modules_to_track_and_run)
             end
         catch e
             println("\e[1;37;41m ****** Exception caught $(typeof(e)) ******** \e[00m")
-            if isa(e, InterruptException)
-                return false
-            elseif isa(e, Revise.ReviseEvalException)
-                error("""
-                    Revise does not support this operation.
-                    Need to restart julia session."""
-                )
-            else
-                stop = _check_other_errors(e)
-                stop && return false
-            end
+            _should_restart_session(e) && return true
             revise_errored = true
         end
     end
