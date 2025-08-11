@@ -22,7 +22,34 @@ This workflow significantly speeds up development by eliminating the need to res
 
 ### Setting Up the Revise-Test Loop
 
-Run the `./runtests.sh` script to start the revise-test loop.
+Run the `./runtests.sh` script to start the revise-test loop. Optionally, you can redirect output to a file by providing a filename as an argument.
+
+### Output Redirection
+
+You can redirect all test output (both stdout and stderr) to a file instead of displaying it in the terminal:
+
+```bash
+# Run with output to terminal (default)
+./runtests.sh
+
+# Run with output redirected to a file
+./runtests.sh test_results.log
+```
+
+**Key behaviors:**
+- The output file is **truncated (erased) on each test run**, ensuring fresh output every time
+- Both successful test results and error messages are captured
+- Works in both revise mode (continuous monitoring) and manual test runs
+- Useful for CI/CD pipelines, automated testing, and logging
+
+**Manual test runs with file output:**
+```julia
+# In Julia REPL - redirect to file
+] test test_output.log
+
+# Or programmatically
+import Pkg; Pkg.test(; test_args = ["output.log"])
+```
 
 ### Configuring What to Track and Test
 

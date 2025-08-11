@@ -43,16 +43,30 @@ TEST_MODULES_TO_TRACK_AND_RUN = [
 ]
 ########
 
-# The first argument is "from_sh" when the script is run from the shell.
+# The first argument is "auto" when the script is run from the shell.
+# The second argument is an optional output filename for redirection.
 # Take a look at `runtests.sh`.
 if length(ARGS) >= 1 && ARGS[1] == "auto"
+    output_file = length(ARGS) >= 2 ? ARGS[2] : nothing
     while run_tests_on_change!(
         TEST_MODULES_TO_TRACK_AND_RUN,
-        MODULES_TO_TRACK
+        MODULES_TO_TRACK,
+        output_file
     ) end
     exit(222)
 else
-    for mod in TEST_MODULES_TO_TRACK_AND_RUN
-        mod.run()
+    output_file = length(ARGS) >= 1 ? ARGS[1] : nothing
+    if output_file !== nothing
+        open(output_file, "w") do io
+            redirect_stdio(stdout=io, stderr=io) do
+                for mod in TEST_MODULES_TO_TRACK_AND_RUN
+                    mod.run()
+                end
+            end
+        end
+    else
+        for mod in TEST_MODULES_TO_TRACK_AND_RUN
+            mod.run()
+        end
     end
 end
