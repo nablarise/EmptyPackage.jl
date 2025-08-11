@@ -53,27 +53,16 @@ function _check_other_errors(composite::CompositeException)::Bool
 end
 
 """
-    _execute_test_modules(test_modules::Vector, output_file::Union{String,Nothing}=nothing)
+    _execute_test_modules(test_modules::Vector, clear_terminal::Bool)
 
-Clear terminal and run all test modules. If output_file is provided,
-truncate it and redirect all output there.
+Run all test modules. Optionally clear terminal first.
 """
-function _execute_test_modules(test_modules::Vector, ::Nothing)
-    # Normal execution with terminal clear
-    run(`clear`)
+function _execute_test_modules(test_modules::Vector, clear_terminal::Bool)
+    if clear_terminal
+        run(`clear`)
+    end
     for mod in test_modules
         mod.run()
-    end
-end
-
-function _execute_test_modules(test_modules::Vector, output_file::String)
-    # Truncate file and redirect output
-    open(output_file, "w") do io
-        redirect_stdio(stdout=io, stderr=io) do
-            for mod in test_modules
-                mod.run()
-            end
-        end
     end
 end
 
@@ -87,7 +76,8 @@ function _should_restart_session(exception::Exception)::Bool
     if isa(exception, InterruptException)
         return true
     elseif isa(exception, Revise.ReviseEvalException)
-        error(REVISE_EVAL_ERROR_MESSAGE)
+        println(stderr, "ERROR: LoadError: ", REVISE_EVAL_ERROR_MESSAGE)
+        return true
     else
         return _check_other_errors(exception)
     end
@@ -97,7 +87,29 @@ end
 Runs test modules when tracked files or modules change.
 Returns `true` if session restart is needed, `false` to continue.
 """
-function run_tests_on_change!(test_modules_to_track_and_run::Vector, modules_to_track::Vector, output_file::Union{String,Nothing}=nothing)::Bool
+function run_tests_on_change!(
+    test_modules_to_track_and_run::Vector,
+    modules_to_track::Vector,
+    output_file::String,
+)::Bool
+    # Redirect ALL output to file, including error messages
+    _run_revise_loop(test_modules_to_track_and_run, modules_to_track, false)  # Don't clear terminal
+    return true
+end
+
+function run_tests_on_change!(
+    test_modules_to_track_and_run::Vector,
+    modules_to_track::Vector,
+    ::Nothing,
+)::Bool
+    return _run_revise_loop(test_modules_to_track_and_run, modules_to_track, true)  # Clear terminal
+end
+
+function _run_revise_loop(
+    test_modules_to_track_and_run::Vector,
+    modules_to_track::Vector,
+    clear_terminal::Bool,
+)::Bool
     revise_errored = false
     while true
         try
@@ -107,11 +119,21 @@ function run_tests_on_change!(test_modules_to_track_and_run::Vector, modules_to_
                 postpone = revise_errored,
                 all = true,
             ) do
-                return _execute_test_modules(test_modules_to_track_and_run, output_file)
+                open(output_file, "w") do io
+                    redirect_stdio(; stdout = io, stderr = io) do
+                        return _execute_test_modules(test_modules_to_track_and_run, clear_terminal)
+                    end
+                end
             end
         catch e
-            println("\e[1;37;41m ****** Exception caught $(typeof(e)) ******** \e[00m")
-            _should_restart_session(e) && return true
+            restart_session = false
+            open(output_file, "a") do io
+                redirect_stdio(; stdout = io, stderr = io) do
+                    println("\e[1;37;41m ****** Exception caught $(typeof(e)) ******** \e[00m")
+                    restart_session = _should_restart_session(e) 
+                end
+            end
+            restart_session && return true
             revise_errored = true
         end
     end

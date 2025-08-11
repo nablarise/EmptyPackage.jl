@@ -32,24 +32,27 @@ You can redirect all test output (both stdout and stderr) to a file instead of d
 # Run with output to terminal (default)
 ./runtests.sh
 
-# Run with output redirected to a file
+# Run with output redirected to a file (creates test/test_results.log)
 ./runtests.sh test_results.log
 ```
 
 **Key behaviors:**
+- Output files are created in the `test/` directory (e.g., `test/test_results.log`)
 - The output file is **truncated (erased) on each test run**, ensuring fresh output every time
-- Both successful test results and error messages are captured
+- **All output is captured**: test results, error messages, and Revise errors
 - Works in both revise mode (continuous monitoring) and manual test runs
-- Useful for CI/CD pipelines, automated testing, and logging
 
 **Manual test runs with file output:**
 ```julia
-# In Julia REPL - redirect to file
-] test test_output.log
+# In Julia REPL - redirect to file (creates test/output.log)
+] test output.log
 
 # Or programmatically
 import Pkg; Pkg.test(; test_args = ["output.log"])
 ```
+
+**File location:**
+All log files are created in the `test/` subdirectory relative to your project root.
 
 ### Configuring What to Track and Test
 
