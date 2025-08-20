@@ -53,7 +53,10 @@ if length(ARGS) >= 1 && ARGS[1] == "auto"
         MODULES_TO_TRACK,
         output_file
     ) end
-    exit(222)
+    # Create signal file to indicate restart is needed
+    # This avoids exit code interception by Pkg.test()
+    touch(".restart_julia")
+    exit(0)
 else
     output_file = length(ARGS) >= 1 ? ARGS[1] : nothing
     if output_file !== nothing

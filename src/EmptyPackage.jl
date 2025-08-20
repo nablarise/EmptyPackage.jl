@@ -3,7 +3,6 @@ module EmptyPackage
 struct Bar
     a::Int
     b::String
-    c
 end
 
 greet() = print("Hello World!")
