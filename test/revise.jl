@@ -53,20 +53,6 @@ function _check_other_errors(composite::CompositeException)::Bool
 end
 
 """
-    _execute_test_modules(test_modules::Vector, clear_terminal::Bool)
-
-Run all test modules. Optionally clear terminal first.
-"""
-function _execute_test_modules(test_modules::Vector, clear_terminal::Bool)
-    if clear_terminal
-        run(`clear`)
-    end
-    for mod in test_modules
-        mod.run()
-    end
-end
-
-"""
     _should_restart_session(exception::Exception)::Bool
 
 Determine whether the Julia session should be restarted based on exception type.
@@ -93,7 +79,7 @@ function run_tests_on_change!(
     output_file::String,
 )::Bool
     # Redirect ALL output to file, including error messages
-    _run_revise_loop(test_modules_to_track_and_run, modules_to_track, false)  # Don't clear terminal
+    _run_revise_loop_with_redirection(test_modules_to_track_and_run, modules_to_track, output_file)
     return true
 end
 
@@ -102,13 +88,13 @@ function run_tests_on_change!(
     modules_to_track::Vector,
     ::Nothing,
 )::Bool
-    return _run_revise_loop(test_modules_to_track_and_run, modules_to_track, true)  # Clear terminal
+    return _run_revise_loop(test_modules_to_track_and_run, modules_to_track)
 end
 
-function _run_revise_loop(
+function _run_revise_loop_with_redirection(
     test_modules_to_track_and_run::Vector,
     modules_to_track::Vector,
-    clear_terminal::Bool,
+    output_file::String,
 )::Bool
     revise_errored = false
     while true
@@ -121,7 +107,9 @@ function _run_revise_loop(
             ) do
                 open(output_file, "w") do io
                     redirect_stdio(; stdout = io, stderr = io) do
-                        return _execute_test_modules(test_modules_to_track_and_run, clear_terminal)
+                        for mod in test_modules_to_track_and_run
+                            mod.run()
+                        end
                     end
                 end
             end
@@ -134,6 +122,33 @@ function _run_revise_loop(
                 end
             end
             restart_session && return true
+            revise_errored = true
+        end
+    end
+end
+
+function _run_revise_loop(
+    test_modules_to_track_and_run::Vector,
+    modules_to_track::Vector,
+)::Bool
+    revise_errored = false
+    while true
+        try
+            entr(
+                [],
+                [test_modules_to_track_and_run..., modules_to_track...];
+                postpone = revise_errored,
+                all = true,
+            ) do
+                run(`clear`)
+                for mod in test_modules_to_track_and_run
+                    mod.run()
+                end
+            end
+        catch e
+            restart_session = false
+            println("\e[1;37;41m ****** Exception caught $(typeof(e)) ******** \e[00m")
+            _should_restart_session(e) && return false
             revise_errored = true
         end
     end

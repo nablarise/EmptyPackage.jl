@@ -18,6 +18,8 @@ while true; do
   
   # Check exit status
   EXIT_STATUS=$?
+
+  echo $EXIT_STATUS
   
   if [ $EXIT_STATUS -eq 0 ]; then
     echo "Successful exit of the revise-test loop!"
