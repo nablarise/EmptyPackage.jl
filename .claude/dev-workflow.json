@@ -1,0 +1,46 @@
+{
+  "workflow_type": "revise-test-loop",
+  "commands": {
+    "start_test_loop": "./runtests.sh",
+    "start_test_loop_with_output": "./runtests.sh output.log",
+    "run_tests_once": "julia --project=@. -e 'using Pkg; Pkg.test()'",
+    "stop_test_loop": "Ctrl+C or kill the process"
+  },
+  "slash_commands": {
+    "test-loop": "Start background test loop and monitor output",
+    "check-tests": "Check latest test results from output.log",
+    "run-tests-once": "Run tests once without watching"
+  },
+  "ai_agents": {
+    "julia-test-monitor": {
+      "description": "Autonomous test monitoring and failure analysis",
+      "use_case": "Continuously monitors test output, proactively reports failures, analyzes errors and suggests fixes",
+      "when_to_use": "For autonomous monitoring while you focus on coding"
+    }
+  },
+  "features": {
+    "auto_reload": true,
+    "world_age_restart": true,
+    "parse_error_exit": true,
+    "file_watching": true,
+    "background_execution": true,
+    "output_file": "test/output.log"
+  },
+  "workflow_description": "Tests automatically rerun when source files change. World age errors trigger automatic Julia restart. Parse errors exit the loop.",
+  "ai_interaction_modes": {
+    "manual": {
+      "description": "Use slash commands for on-demand control",
+      "commands": ["/test-loop", "/check-tests", "/run-tests-once"]
+    },
+    "autonomous": {
+      "description": "Use julia-test-monitor agent for continuous monitoring",
+      "agent": "julia-test-monitor"
+    }
+  },
+  "ai_agent_instructions": {
+    "on_code_change": "Save the file - tests will automatically rerun",
+    "on_parse_error": "Fix the syntax error. The loop has exited, requiring manual restart",
+    "on_world_age_error": "Wait for automatic Julia restart (5-10 seconds)",
+    "on_test_failure": "Fix the code and save - tests will automatically rerun"
+  }
+}

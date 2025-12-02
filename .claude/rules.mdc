@@ -1,0 +1,155 @@
+# Julia tests
+
+You will find a generic structure for tests in the following public repository : https://github.com/nablarise/EmptyPackage.jl
+You must use these workflow for all my Julia projects.
+
+Tests should:
+- Use the `Test` module
+- Have one top-level `@testset` per file
+- Include test cases of increasing complexity
+- Use individual `@test` calls for each assertion
+- Cover basic functionality, edge cases, and type stability
+
+In the following instructions, replace <Pkg> with the name of the package.
+
+## Test Architecture
+
+The test suite is organized into distinct modules with different purposes.
+The directory structure is the following:
+
+```
+test/
+├── runtests.jl             # Main test runner
+├── revise.jl               # Auto-reload functionality
+├── <Pkg>UnitTests/           # Unit tests for individual components
+│   └── <Pkg>UnitTests.jl     # Module definition
+│       ├── <folder>/             # One folder for each component
+│       └── <file.jl>             # One file for each testset 
+└── <Pkg>E2eTests/            # End-to-end integration tests
+    └── <Pkg>E2eTests.jl      # Module definition
+        ├── <folder>/             # One folder for each component
+        └── <file.jl>             # One file for each testset 
+```
+
+Module Differences:
+  - <Pkg>UnitTests: Tests individual components in isolation (pure unit tests)
+  - <Pkg>E2eTests: Tests complete workflows with real optimizers (end to end tests) (direct call to API)
+
+## Design Patterns
+
+Example of individual Test Function Structure:
+
+```julia
+function test_getter_ok()
+      obj = create_object() # Isolate object creation.
+
+      # Test assertions
+      @test <Pkg>.getter(obj, <args1>) == <value1>
+      @test <Pkg>.getter(obj, <args2>) == <value2>
+end
+```
+
+Example of Testset Organization Pattern:
+
+```julia
+function test_unit_<feature/name of file>()
+    @testset "[feature/name of file] constructor" begin
+        test_getter_ok()
+        test_getter_nok()
+        test_getter_<name of scenario>()
+    end
+
+    @testset "[network/network] collections" begin
+        test_collections()
+    end
+end
+```
+
+## Testing Conventions
+
+Naming Conventions:
+  - Test Files: Named after the julia file they test (e.g., network.jl, methane.jl)
+  - Test Functions: test_<scope>_<component>_<functionality>() patter
+  - Module Organization: Mirrors source code structure (test/<Pkg>UnitTests/network/ tests src/network/)
+
+
+Test.jl Utilization:
+  - @test for assertions
+  - @testset for grouping related tests
+  - @test_broken for known failing tests
+  - Approximate equality with ≈ or abs(a - b) <= tolerance when a and b around zero.
+
+## Test Execution Flow
+
+The revise-test loop is a handy workflow for Julia development :
+1. You make changes to your code (current pkg and tests)
+2. [Revise.jl](https://timholy.github.io/Revise.jl/stable/) automatically detect those changes
+3. It runs tests immediately to verify your changes work correctly
+4. You continue development without restarting Julia
+
+### Setting Up the Revise-Test Loop
+
+Run the `./runtests.sh` script to start the revise-test loop.
+
+### Recommended Development Workflow
+
+**When working on a Julia application, always use:**
+```bash
+./runtests.sh tests.log
+```
+
+This workflow provides enormous time savings because:
+- The script automatically runs tests whenever you modify any file
+- No need to restart Julia or wait for precompilation
+- Just consult the content of `tests.log` to see if tests pass
+- **Important**: Wait at least 1 second before checking the log content to ensure tests have run
+
+**Development cycle:**
+1. Make changes to source code or tests
+2. Wait 1+ seconds 
+3. Check `cat test/tests.log` for test results
+4. Repeat
+
+This eliminates the typical Julia startup overhead and dramatically speeds up the development cycle.
+
+If the log is a Revise error that tells you an operation is unsupported and you need to restart the session:
+kill the process and run the `./runtests.sh tests.log` command again.
+
+### Configuring What to Track and Test
+
+You need to edit the `test/runtests.jl` file to configure the revise-test loop:
+
+1. (automatic): the script automatically puts all test modules in the `LOAD_PATH`
+2. (manual): import your Application module
+   ```julia
+   using <Pkg>
+   ```
+3. (manual): import all test modules
+   ```julia
+   using <Pkg>UnitTests
+   ```
+4. (manual): list in `MODULES_TO_TRACK` the modules to track for changes
+   ```julia
+   MODULES_TO_TRACK = [<Pkg>]
+   ```
+5. (manual): list in `TEST_MODULES_TO_TRACK_AND_RUN` the test modules to track and run
+   ```julia
+   TEST_MODULES_TO_TRACK_AND_RUN = [<Pkg>UnitTests]
+   ```
+
+In each test module (e.g. <Pkg>UnitTests), define a `run()` function that calls all your tests.
+
+With this setup, any changes to your source files in the tracked modules will trigger an automatic rerun of the specified test modules, giving you immediate feedback on your changes.
+  
+## Best Practices
+
+- Modular Organization: Test structure mirrors source code
+- Clear Naming: Descriptive test and function names
+- Test Isolation: Each test creates its own data
+- Data-driven Approach: Extensive use of test datasets
+- Helper Functions: Reusable utilities for common patterns
+- Development Experience: Auto-reload support for rapid iteration
+- Test Coverage: Multiple test cases for edge conditions
+- Consistent Patterns: Uniform structure across all test files
+- Tolerance Handling: Appropriate floating-point comparisons
+- Documentation: Clear testset descriptions with bracketed prefixes

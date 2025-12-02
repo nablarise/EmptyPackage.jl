@@ -31,6 +31,7 @@ Returns `true` if world age error detected, `false` otherwise.
 """
 function _check_other_errors(e::Exception)::Bool
     if _is_world_age_error(e)
+        println(stderr, "[AI-STATUS] WORLD_AGE_ERROR: Auto-restarting Julia")
         println(stderr, "World age error detected.")
         println(stderr, "Restarting Julia session...")
         showerror(stderr, e, catch_backtrace())
@@ -48,6 +49,7 @@ Handle parse errors with simplified output (no stacktrace).
 Exit the loop.
 """
 function _check_other_errors(e::Base.Meta.ParseError)
+    println(stderr, "[AI-STATUS] PARSE_ERROR: Fix syntax and restart loop")
     showerror(stderr, e, catch_backtrace())
     exit(1)
 end
@@ -135,6 +137,9 @@ function _run_revise_loop_with_redirection(
     modules_to_track::Vector,
     output_file::String,
 )::Bool
+    # Ensure the output file exists before starting the loop
+    touch(output_file)
+
     revise_errored = false
     while true
         try
@@ -144,7 +149,7 @@ function _run_revise_loop_with_redirection(
                 postpone = revise_errored,
                 all = true,
             ) do
-                open(output_file, "w") do io
+                open(output_file; write=true, create=true, truncate=true) do io
                     redirect_stdio(; stdout = io, stderr = io) do
                         for mod in test_modules_to_track_and_run
                             mod.run()
@@ -154,10 +159,10 @@ function _run_revise_loop_with_redirection(
             end
         catch e
             restart_session = false
-            open(output_file, "a") do io
+            open(output_file; write=true, create=true, append=true) do io
                 redirect_stdio(; stdout = io, stderr = io) do
                     println("\e[1;37;41m ****** Exception caught $(typeof(e)) ******** \e[00m")
-                    restart_session = _should_restart_session(e) 
+                    restart_session = _should_restart_session(e)
                 end
             end
             restart_session && return true

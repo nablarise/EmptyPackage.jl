@@ -13,8 +13,8 @@ Automatically runs tests when code changes—no Julia restart needed:
 
 **Start the loop:**
 ```bash
-./runtests.sh                # Output to terminal
-./runtests.sh output.log     # Redirect to test/output.log (truncated each run)
+./runtests.sh                    # Output to terminal
+./runtests.sh test/output.log    # Redirect to test/output.log (truncated each run)
 ```
 
 **Configure in `test/runtests.jl`:**
@@ -48,7 +48,6 @@ This package uses an automatic test-rerun workflow with two interaction modes:
 Use slash commands for on-demand control:
 - `/test-loop` - Start background test loop, monitor output
 - `/check-tests` - Check latest test results from `test/output.log`
-- `/run-tests-once` - Run tests once without watching
 
 ### Autonomous Monitoring (Agent)
 Use the `julia-test-monitor` agent for continuous monitoring:
