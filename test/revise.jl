@@ -6,14 +6,33 @@ const REVISE_EVAL_ERROR_MESSAGE = """
     Need to restart julia session."""
 
 """
+    _is_world_age_error(exception::Exception)::Bool
+
+Detect if an exception is a world age error by checking if the error message
+contains '@world'. World age errors occur when struct definitions change during
+runtime and Julia cannot safely call methods defined in the old world age.
+"""
+function _is_world_age_error(exception)::Bool
+    error_string = sprint(showerror, exception)
+    return occursin("@world", error_string)
+end
+
+"""
     _check_other_errors(e::Exception)::Bool
 
 Display error to stderr and return whether execution should stop.
-Returns `false` for most errors (continue execution).
+Returns `true` if world age error detected, `false` otherwise.
 """
 function _check_other_errors(e::Exception)::Bool
-    showerror(stderr, e, catch_backtrace())
-    return false
+    if _is_world_age_error(e)
+        println(stderr, "World age error detected.")
+        println(stderr, "Restarting Julia session...")
+        showerror(stderr, e, catch_backtrace())
+        return true
+    else
+        showerror(stderr, e, catch_backtrace())
+        return false
+    end
 end
 
 """
@@ -21,19 +40,28 @@ end
 
 Handle parse errors with simplified output (no stacktrace).
 """
-function _check_other_errors(e::Base.Meta.ParseError)
+function _check_other_errors(e::Base.Meta.ParseError)::Bool
     showerror(stderr, e)
     return false
 end
 
 """
-    _check_other_errors(e::TaskFailedException)::Bool
+    _check_other_errors(e::MethodError)::Bool
 
 Handle task failures with simplified output (no stacktrace).
 """
-function _check_other_errors(e::TaskFailedException)
+function _check_other_errors(e::MethodError)::Bool
     showerror(stderr, e)
     return false
+end
+
+"""
+    _check_other_errors(e::Method)::Bool
+
+Handle task failures with simplified output (no stacktrace).
+"""
+function _check_other_errors(e::TaskFailedException)::Bool
+    return _check_other_errors(e.task.result)
 end
 
 """
@@ -41,7 +69,11 @@ end
 
 Handle test failures - test package already prints the error.
 """
-_check_other_errors(e::TestSetException)::Bool = false
+function _check_other_errors(e::TestSetException)::Bool
+    world_age_error = any(err_or_fail -> _is_world_age_error(err_or_fail), e.errors_and_fails)
+    showerror(stderr, e)
+    return world_age_error
+end
 
 """
     _check_other_errors(composite::CompositeException)::Bool
