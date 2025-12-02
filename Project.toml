@@ -1,9 +1,10 @@
 name = "EmptyPackage"
 uuid = "6ff339c1-7ec2-435a-b3ae-8c492307cecf"
 authors = ["Guillaume Marques <guillaume@nablarise.com>"]
-version = "0.1.0"
+version = "0.2.0"
 
-[deps]
+[compat]
+julia = "1.12"
 
 [extras]
 Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
