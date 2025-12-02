@@ -9,10 +9,12 @@ module EmptyPackage
 struct Bar
     a::Int
     b::String
-    #c::String
+    #c::String # Test struct change.
 end
 
 greet() = print("Hello World!")
 sum_math(a) = a + 10
+
+#f() = (1 # Test parse error.
 
 end # module EmptyPackage

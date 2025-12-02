@@ -45,10 +45,11 @@ end
     _check_other_errors(e::Base.Meta.ParseError)::Bool
 
 Handle parse errors with simplified output (no stacktrace).
+Exit the loop.
 """
-function _check_other_errors(e::Base.Meta.ParseError)::Bool
-    showerror(stderr, e)
-    return false
+function _check_other_errors(e::Base.Meta.ParseError)
+    showerror(stderr, e, catch_backtrace())
+    exit(1)
 end
 
 """
