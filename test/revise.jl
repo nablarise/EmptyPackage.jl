@@ -1,3 +1,9 @@
+# Copyright (c) 2025 Nablarise
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 # Inspired from https://gist.github.com/torfjelde/62c1281d5fc486d3a404e5de6cf285d4
 # and Coluna.jl (https://github.com/atoptima/Coluna.jl/blob/master/test/revise.jl).
 
