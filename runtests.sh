@@ -25,53 +25,40 @@
 #   "Restart signal detected" - Auto-restarting due to world age error
 #   "Tests failed with exit status X" - Unexpected failure
 
-# Check for optional output file argument
-if [ $# -gt 1 ]; then
-  OUTPUT_FILE="$2"
-elif [ $# -eq 1 ]; then
-  OUTPUT_FILE="$1"
+OUTPUT_FILE=""
+if [ $# -ge 1 ]; then
+    # Convert to absolute path to avoid ambiguity
+    OUTPUT_FILE=$(realpath "$1" 2>/dev/null || echo "$(pwd)/$1")
+    
+    # clear file content at startup
+    > "$OUTPUT_FILE"
+    
+    TEST_ARGS="[\"auto\", \"$OUTPUT_FILE\"]"
+    echo "Logs redirected to: $OUTPUT_FILE"
 else
-  OUTPUT_FILE=""
+    TEST_ARGS="[\"auto\"]"
 fi
 
-# Convert relative path to absolute path for consistent behavior
-if [ -n "$OUTPUT_FILE" ]; then
-  # Get the directory and filename
-  OUTPUT_DIR=$(dirname "$OUTPUT_FILE")
-  OUTPUT_NAME=$(basename "$OUTPUT_FILE")
+# Special exit code to request a restart (World Age Error)
+EXIT_CODE_RESTART=100
 
-  # Convert to absolute path
-  if [ "$OUTPUT_DIR" = "." ]; then
-    OUTPUT_FILE="$(pwd)/$OUTPUT_NAME"
-  else
-    OUTPUT_FILE="$(cd "$OUTPUT_DIR" 2>/dev/null && pwd)/$OUTPUT_NAME" || OUTPUT_FILE="$(pwd)/$OUTPUT_FILE"
-  fi
-
-  TEST_ARGS="[\"auto\", \"$OUTPUT_FILE\"]"
-else
-  TEST_ARGS="[\"auto\"]"
-fi
-
-# Run the Julia command and retry on failure
 while true; do
-  clear
-  julia --project=@. -e "import Pkg; Pkg.test(; test_args = $TEST_ARGS);";
+    # Run Julia.
+    # Note: We let Julia handle the output redirection logic internally if needed.
+    julia --project=@. -e "import Pkg; Pkg.test(; test_args = $TEST_ARGS);"
+    
+    EXIT_STATUS=$?
 
-  # Check exit status and signal file
-  EXIT_STATUS=$?
-
-  echo $EXIT_STATUS
-  
-  if [ $EXIT_STATUS -eq 0 ] && [ ! -f "test/.restart_julia" ]; then
-    echo "Successful exit of the revise-test loop!"
-    break
-  elif [ -f "test/.restart_julia" ]; then
-    echo "Restart signal detected. Retrying in 3 seconds..."
-    rm -f "test/.restart_julia"
-    sleep 3
-  else
-    echo "Tests failed with exit status $EXIT_STATUS."
-    echo "This case is not handled. Fix the error and try again."
-    break
-  fi
+    # Control Logic
+    if [ $EXIT_STATUS -eq $EXIT_CODE_RESTART ]; then
+        echo "[BASH] Restart signal received (World Age Error). Restarting in 1s..."
+        sleep 1
+        continue # Loop again
+    elif [ $EXIT_STATUS -eq 0 ]; then
+        echo "[BASH] Clean exit."
+        exit 0
+    else
+        echo "[BASH] Error (Exit Code: $EXIT_STATUS). Check logs."
+        exit $EXIT_STATUS
+    fi
 done

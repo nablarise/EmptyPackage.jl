@@ -24,6 +24,7 @@ end
 
 using Revise
 using Test
+using JSON
 
 ######## Step 2: set the name of your app.
 using EmptyPackage
@@ -44,38 +45,26 @@ MODULES_TO_TRACK = [
 ########
 
 ######## Step 5: Put all the test modules to track and run here.
-TEST_MODULES_TO_TRACK_AND_RUN = [
+TEST_MODULES = [
     EmptyPackageUnitTests
 ]
 ########
 
-# The first argument is "auto" when the script is run from the shell.
-# The second argument is an optional output filename for redirection.
-# Take a look at `runtests.sh`.
+# If run via "runtests.sh auto <file>"
 if length(ARGS) >= 1 && ARGS[1] == "auto"
     output_file = length(ARGS) >= 2 ? ARGS[2] : nothing
-    while run_tests_on_change!(
-        TEST_MODULES_TO_TRACK_AND_RUN,
-        MODULES_TO_TRACK,
-        output_file
-    ) end
-    # Create signal file to indicate restart is needed
-    # This avoids exit code interception by Pkg.test()
-    touch(".restart_julia")
-    exit(0)
+    
+    if output_file === nothing
+        println(stderr, "Error: Auto mode requires an output file argument.")
+        exit(1)
+    end
+
+    # Launch infinite loop (never returns unless exit is called)
+    run_revise_loop_with_redirection(TEST_MODULES, MODULES_TO_TRACK, output_file)
+    
 else
-    output_file = length(ARGS) >= 1 ? ARGS[1] : nothing
-    if output_file !== nothing
-        open(output_file, "w") do io
-            redirect_stdio(stdout=io, stderr=io) do
-                for mod in TEST_MODULES_TO_TRACK_AND_RUN
-                    mod.run()
-                end
-            end
-        end
-    else
-        for mod in TEST_MODULES_TO_TRACK_AND_RUN
-            mod.run()
-        end
+    # Manual mode (CI/CD or direct launch)
+    for mod in TEST_MODULES
+        mod.run()
     end
 end
