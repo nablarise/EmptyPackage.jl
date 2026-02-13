@@ -44,18 +44,6 @@ Each test module needs a `run()` function that executes all tests in that module
 
 This package uses an automatic test-rerun workflow with two interaction modes:
 
-### Manual Control (Slash Commands)
-Use slash commands for on-demand control:
-- `/test-loop` - Start background test loop, monitor output
-- `/check-tests` - Check latest test results from `test/output.log`
-
-### Autonomous Monitoring (Agent)
-Use the `julia-test-monitor` agent for continuous monitoring:
-- Automatically watches test output
-- Proactively reports failures
-- Analyzes errors and suggests fixes
-- Ideal when you want to focus on coding without manually checking tests
-
 **Expected Behavior:**
 - ✅ Regular test failures: Continue watching, fix and save to retry
 - ⚠️ World age errors: Auto-restart Julia (wait ~5 seconds)
@@ -84,15 +72,3 @@ When using file output mode (`./runtests.sh test/output.log`), logs are structur
 - Use `JSON.parse()` per line, not regex
 - Filter by `event` field for specific information
 - The file is **overwritten** (mode `w`) on each test run—no infinite history
-
-**Workflow Examples:**
-
-*Manual approach:*
-1. `/test-loop` - Start background test loop
-2. Make code changes and save
-3. `/check-tests` - Check results on demand
-
-*Autonomous approach:*
-1. Start `julia-test-monitor` agent
-2. Make code changes and save
-3. Agent reports failures automatically
