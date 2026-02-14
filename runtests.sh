@@ -29,14 +29,25 @@ OUTPUT_FILE=""
 if [ $# -ge 1 ]; then
     # Convert to absolute path to avoid ambiguity
     OUTPUT_FILE=$(realpath "$1" 2>/dev/null || echo "$(pwd)/$1")
-    
+
     # clear file content at startup
     > "$OUTPUT_FILE"
-    
-    TEST_ARGS="[\"auto\", \"$OUTPUT_FILE\"]"
+
+    TEST_ARGS="[\"auto\", \"$OUTPUT_FILE\", \"jsonl\"]"
     echo "Logs redirected to: $OUTPUT_FILE"
 else
-    TEST_ARGS="[\"auto\"]"
+    # Interactive mode: use temp file + tail + plain text format
+    TEST_ARGS="[\"auto\", \"\", \"plain\"]"
+
+    # Determine temp file path (must match Julia's default)
+    TEMP_DIR="${TMPDIR:-/tmp}"
+    TEMP_OUTPUT_FILE="$TEMP_DIR/julia_revise_test_output.log"
+
+    # Clear temp file
+    > "$TEMP_OUTPUT_FILE"
+
+    echo "Interactive mode: Watching for changes..."
+    echo "Press Ctrl+C to stop."
 fi
 
 # Special exit code to request a restart (World Age Error)

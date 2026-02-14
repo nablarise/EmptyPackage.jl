@@ -52,16 +52,13 @@ TEST_MODULES = [
 
 # If run via "runtests.sh auto <file>"
 if length(ARGS) >= 1 && ARGS[1] == "auto"
-    output_file = length(ARGS) >= 2 ? ARGS[2] : nothing
-    
-    if output_file === nothing
-        println(stderr, "Error: Auto mode requires an output file argument.")
-        exit(1)
-    end
+    # Parse arguments
+    raw_output_file = length(ARGS) >= 2 ? ARGS[2] : ""
+    output_dest = isempty(raw_output_file) ? nothing : raw_output_file
+    format = length(ARGS) >= 3 ? ARGS[3] : "jsonl"
 
     # Launch infinite loop (never returns unless exit is called)
-    run_revise_loop_with_redirection(TEST_MODULES, MODULES_TO_TRACK, output_file)
-    
+    run_revise_loop_with_redirection(TEST_MODULES, MODULES_TO_TRACK, output_dest, format) 
 else
     # Manual mode (CI/CD or direct launch)
     for mod in TEST_MODULES

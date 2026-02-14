@@ -11,7 +11,9 @@ using Test, EmptyPackage, Revise
 include("test1.jl")
 
 function run()
-    test1()
+    @testset "EmptyPackageUnitTests" begin
+        test1()
+    end
 end
 
 end # module EmptyPackageUnitTests
